@@ -3,177 +3,238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Text to PDF Converter by Suman</title>
+  <title>Text to PDF Converter</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
       text-align: center;
       background: #c0392b;  /* fallback for old browsers */
 background: -webkit-linear-gradient(to right, #8e44ad, #c0392b);  /* Chrome 10-25, Safari 5.1-6 */
 background: linear-gradient(to right, #8e44ad, #c0392b); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
-
-
-      color: white;
+color: white;
+      margin: 0;
+      padding: 0;
     }
-    textarea {
-      width: 80%;
-      height: 150px;
+
+    .container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: transparent;
+      border-radius: 10px;
+      /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); */
+    }
+
+    h1 {
       margin-bottom: 20px;
-      border: 2px solid #ffffff; /* White border */
-      border-radius: 15px; /* Softer corners */
-      padding: 15px; /* Added padding for better usability */
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 20px;
+      padding: 10px;
       font-size: 16px;
+      /* border: 1px solid #ccc; */
+      border-radius: 15px;
+      /* resize: none; */
+      border: none;
       background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent white background */
       color: #333; /* Dark text for contrast */
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
     }
-    textarea:focus {
+    select,input{
+      border-radius: 10px;
       outline: none;
+    }
+    
+
+textarea:focus, select:focus, input:focus{
+  outline: none;
       border-color: #ff8c00; /* Highlighted border on focus */
       box-shadow: 0 0 10px rgba(255, 140, 0, 0.7); /* Glow effect on focus */
+}
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin-bottom: 20px;
     }
-    select, input, button {
-      margin: 5px;
-      padding: 10px;
-      font-size: 14px;
-      border-radius: 5px;
-      border: none;
+
+    .controls div {
+      flex: 1;
+      margin: 0 10px;
+      min-width: 200px;
     }
-    select, input {
-      background-color: #ffffff;
-      color: #333;
+
+    .controls label {
+      display: block;
+      margin-bottom: 5px;
     }
-    button {
+
+    .controls select, .controls input {
+      width: 100%;
+      padding: 5px;
+      font-size: 16px;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .buttons button {
       background: linear-gradient(to right, #4caf50, #8bc34a); /* Green gradient */
-      color: white;
-      font-weight: bold;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      /* border-radius: 5px; */
       cursor: pointer;
-      transition: background 0.3s ease, transform 0.2s ease; /* Added smooth hover effect */
-      padding: 12px 20px; /* Adjusted button size */
+      transition: background 0.3s;
       border-radius: 25px; /* Fully rounded button */
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Subtle shadow */
     }
-    button:hover {
+
+    .buttons button:hover {
       background: linear-gradient(to right, #388e3c, #689f38); /* Darker green on hover */
-      transform: scale(1.05); /* Slight zoom effect on hover */
+      transform: scale(1.05); /* Slight zoom effect on hover */    }
+
+    .buttons button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
     }
-    .controls label {
-      margin-right: 10px;
-      font-size: 14px;
-    }
-    img{
-        position: relative;
-        border-radius: 8rem;
-        height:80px;
-    }
-    .upp{
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        gap: 2rem;
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .container {
+        margin: 20px;
+        padding: 15px;
+      }
+
+      .controls div {
+        flex: 1 1 100%;
+        margin-bottom: 10px;
+      }
+
+      .buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .buttons button {
+        width: 100%;
+        max-width: 200px;
+      }
     }
   </style>
-  
-
 </head>
 <body>
-    <div class="upp">
-  <h1>Text to PDF Converter (By Suman 😎)</h1>
-  <img src="hero-banner.jpg" alt="suman-image">
-</div>
-<br><br><br>
-  <div class="controls">
-    <label for="font-size">Font Size:</label>
-    <input type="number" id="font-size" value="16" min="8" max="72">
-
-    <label for="font-style">Font Style:</label>
-    <select id="font-style">
-      <option value="normal">Normal</option>
-      <option value="bold">Bold</option>
-      <option value="italic">Italic</option>
-    </select>
-
-    <label for="font-family">Font:</label>
-    <select id="font-family">
-      <option value="helvetica">Helvetica</option>
-      <option value="times">Times New Roman</option>
-      <option value="courier">Courier</option>
-    </select>
+  <div class="container">
+    <h1>Text to PDF Converter</h1>
+    <textarea id="textInput" placeholder="Enter your text here..."></textarea>
+    <div class="controls">
+      <div>
+        <label for="fontSize">Font Size:</label>
+        <input type="number" id="fontSize" value="16" min="10" max="72">
+      </div>
+      <div>
+        <label for="fontStyle">Font Style:</label>
+        <select id="fontStyle">
+          <option value="normal">Normal</option>
+          <option value="bold">Bold</option>
+          <option value="italic">Italic</option>
+        </select>
+      </div>
+      <div>
+        <label for="fontFamily">Font:</label>
+        <select id="fontFamily">
+          <option value="Helvetica">Helvetica</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier">Courier</option>
+          <option value="Arial">Arial</option>
+        </select>
+      </div>
+    </div>
+    <div class="buttons">
+      <button id="downloadBtn">Download PDF</button>
+      <button id="shareBtn">Share PDF</button>
+    </div>
   </div>
-<br><br>
-  <textarea id="text-input" placeholder="Enter your text here..." wrap="soft"></textarea><br>
-  <button onclick="generatePDF()">Download PDF</button>
-  <button onclick="sharePDF()">Share PDF</button>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
-    let generatedPDFBlob;
+    const { jsPDF } = window.jspdf;
 
-    // Generate PDF
+    const textInput = document.getElementById('textInput');
+    const fontSizeInput = document.getElementById('fontSize');
+    const fontStyleInput = document.getElementById('fontStyle');
+    const fontFamilyInput = document.getElementById('fontFamily');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const shareBtn = document.getElementById('shareBtn');
+
+    let pdfDoc;
+
     function generatePDF() {
-      const textArea = document.getElementById("text-input");
-      const text = textArea.value;
+      const text = textInput.value;
+      words = text.split(" ")
+      const fontSize = parseInt(fontSizeInput.value);
+      const fontStyle = fontStyleInput.value;
+      const fontFamily = fontFamilyInput.value;
 
-      const fontSize = parseInt(document.getElementById("font-size").value);
-      const fontStyle = document.getElementById("font-style").value;
-      const fontFamily = document.getElementById("font-family").value;
-
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-
-      pdf.setFont(fontFamily, fontStyle);
-      pdf.setFontSize(fontSize);
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 10;
-      const wrappedText = pdf.splitTextToSize(text, pageWidth - 2 * margin);
-      pdf.text(wrappedText, margin, margin + 10);
-
-      generatedPDFBlob = pdf.output("blob");
-      pdf.save("GeneratedDocument.pdf");
-    }
-
-    // Share PDF
-    function sharePDF() {
-      if (!generatedPDFBlob) {
-        alert("Please generate the PDF first.");
-        return;
-      }
-
-      const file = new File([generatedPDFBlob], "GeneratedDocument.pdf", {
-        type: "application/pdf",
+      pdfDoc = new jsPDF();
+      pdfDoc.setFont(fontFamily, fontStyle);
+      pdfDoc.setFontSize(fontSize);
+      const margins = { top: 10, left: 10, right: 10 };
+      pdfDoc.text(text, margins.left, margins.top, {
+        maxWidth: pdfDoc.internal.pageSize.width - margins.left - margins.right,
       });
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator
-          .share({
+      if(words[1]==undefined && words[2] == undefined){
+      fname = words[0]+" output.pdf"; // Save the PDF
+      }
+      else if(words[2] == undefined){
+        fname = words[0]+" "+words[1]+" output.pdf"; // Save the PDF
+      }
+      else{
+        fname = words[0]+" "+words[1]+" "+words[2]+" output.pdf"; // Save the PDF
+      }
+    }
+
+    function downloadPDF() {
+      if (!pdfDoc) generatePDF();
+      pdfDoc.save(fname);
+    }
+
+    async function sharePDF() {
+      if (!pdfDoc) generatePDF();
+      const pdfBlob = pdfDoc.output('blob');
+      const file = new File([pdfBlob], fname, { type: 'application/pdf' });
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
             files: [file],
-            title: "Generated PDF",
-            text: "Here is the PDF I created!",
-          })
-          .then(() => alert("PDF shared successfully!"))
-          .catch((error) => alert("Error sharing PDF: " + error));
+          });
+        } catch (error) {
+          alert('Sharing failed: ' + error.message);
+        }
       } else {
-        alert("Sharing is not supported on this device.");
+        alert('Web Share API is not supported on this device.');
       }
     }
 
-    // Share via Email
-    function shareViaEmail() {
-      if (!generatedPDFBlob) {
-        alert("Please generate the PDF first.");
-        return;
-      }
+    textInput.addEventListener('input', generatePDF);
+    fontSizeInput.addEventListener('change', generatePDF);
+    fontStyleInput.addEventListener('change', generatePDF);
+    fontFamilyInput.addEventListener('change', generatePDF);
+    downloadBtn.addEventListener('click', downloadPDF);
+    shareBtn.addEventListener('click', sharePDF);
 
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const base64PDF = e.target.result.split(",")[1];
-        const emailLink = `mailto:?subject=Generated PDF&body=Here is the PDF I created!&attachment=${base64PDF}`;
-        window.location.href = emailLink;
-      };
-      reader.readAsDataURL(generatedPDFBlob);
-    }
+    // Generate the PDF initially
+    generatePDF();
   </script>
 </body>
 </html>

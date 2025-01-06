@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text to PDF with Formatting</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+      background: #c0392b;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #8e44ad, #c0392b);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #8e44ad, #c0392b); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+
+      color: white;
+    }
+    textarea {
+      width: 80%;
+      height: 150px;
+      margin-bottom: 20px;
+      border: 2px solid #ffffff; /* White border */
+      border-radius: 15px; /* Softer corners */
+      padding: 15px; /* Added padding for better usability */
+      font-size: 16px;
+      background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent white background */
+      color: #333; /* Dark text for contrast */
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #ff8c00; /* Highlighted border on focus */
+      box-shadow: 0 0 10px rgba(255, 140, 0, 0.7); /* Glow effect on focus */
+    }
+    select, input, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: none;
+    }
+    select, input {
+      background-color: #ffffff;
+      color: #333;
+    }
+    button {
+      background: linear-gradient(to right, #4caf50, #8bc34a); /* Green gradient */
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease; /* Added smooth hover effect */
+      padding: 12px 20px; /* Adjusted button size */
+      border-radius: 25px; /* Fully rounded button */
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    }
+    button:hover {
+      background: linear-gradient(to right, #388e3c, #689f38); /* Darker green on hover */
+      transform: scale(1.05); /* Slight zoom effect on hover */
+    }
+    .controls label {
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    img{
+        position: relative;
+        border-radius: 8rem;
+        height:80px;
+    }
+    .upp{
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: 2rem;
+    }
+  </style>
+  
+
+</head>
+<body>
+    <div class="upp">
+  <h1>Text to PDF Converter (By Suman 😎)</h1>
+  <img src="hero-banner.jpg" alt="suman-image">
+</div>
+<br><br><br>
+  <div class="controls">
+    <label for="font-size">Font Size:</label>
+    <input type="number" id="font-size" value="16" min="8" max="72">
+
+    <label for="font-style">Font Style:</label>
+    <select id="font-style">
+      <option value="normal">Normal</option>
+      <option value="bold">Bold</option>
+      <option value="italic">Italic</option>
+    </select>
+
+    <label for="font-family">Font:</label>
+    <select id="font-family">
+      <option value="helvetica">Helvetica</option>
+      <option value="times">Times New Roman</option>
+      <option value="courier">Courier</option>
+    </select>
+  </div>
+<br><br>
+  <textarea id="text-input" placeholder="Enter your text here..."></textarea><br>
+  <button onclick="generatePDF()">Download PDF</button>
+  
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script>
+    async function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      words = []
+
+      const text = document.getElementById('text-input').value;
+      words = text.split(" ")
+      const fontSize = parseInt(document.getElementById('font-size').value, 10);
+      const fontStyle = document.getElementById('font-style').value;
+      const fontFamily = document.getElementById('font-family').value;
+
+      // Set font properties
+      doc.setFont(fontFamily, fontStyle);
+      doc.setFontSize(fontSize);
+
+      // Add text to PDF
+      doc.text(text, 10, 20); // Starting position (10, 20)
+      if(words[1]==undefined && words[2] == undefined){
+      doc.save(words[0]+" output.pdf"); // Save the PDF
+      }
+      else if(words[2] == undefined){
+        doc.save(words[0]+" "+words[1]+" output.pdf"); // Save the PDF
+      }
+      else{
+        doc.save(words[0]+" "+words[1]+" "+words[2]+" output.pdf"); // Save the PDF
+      }
+    }
+  </script>
+</body>
+</html>

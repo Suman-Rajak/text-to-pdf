@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Text to PDF with Formatting</title>
+  <title>Text to PDF Converter by Suman</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -105,89 +105,75 @@ background: linear-gradient(to right, #8e44ad, #c0392b); /* W3C, IE 10+/ Edge, F
   <textarea id="text-input" placeholder="Enter your text here..." wrap="soft"></textarea><br>
   <button onclick="generatePDF()">Download PDF</button>
   <button onclick="sharePDF()">Share PDF</button>
-  <button onclick="shareViaEmail()">Share via Email</button>
-  
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
   <script>
+    let generatedPDFBlob;
+
     // Generate PDF
     function generatePDF() {
-      // Get text area value
       const textArea = document.getElementById("text-input");
       const text = textArea.value;
-      words = text.split(" ")
-  
-      // Get font settings
+
       const fontSize = parseInt(document.getElementById("font-size").value);
       const fontStyle = document.getElementById("font-style").value;
       const fontFamily = document.getElementById("font-family").value;
-  
-      // Initialize jsPDF
+
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF();
-  
-      // Set font settings
+
       pdf.setFont(fontFamily, fontStyle);
       pdf.setFontSize(fontSize);
-  
-      // Add text with auto-wrap
+
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 10; // Margin from the edges
-      const wrappedText = pdf.splitTextToSize(text, pageWidth - 2 * margin); // Auto-wrap text
-      pdf.text(wrappedText, margin, margin + 10); // Add text with padding
-  
-      // Save the PDF
-       if(words[1]==undefined && words[2] == undefined){
-      pdf.save(words[0]+" output.pdf"); // Save the PDF
+      const margin = 10;
+      const wrappedText = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+      pdf.text(wrappedText, margin, margin + 10);
+
+      generatedPDFBlob = pdf.output("blob");
+      pdf.save("GeneratedDocument.pdf");
+    }
+
+    // Share PDF
+    function sharePDF() {
+      if (!generatedPDFBlob) {
+        alert("Please generate the PDF first.");
+        return;
       }
-      else if(words[2] == undefined){
-        pdf.save(words[0]+" "+words[1]+" output.pdf"); // Save the PDF
+
+      const file = new File([generatedPDFBlob], "GeneratedDocument.pdf", {
+        type: "application/pdf",
+      });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator
+          .share({
+            files: [file],
+            title: "Generated PDF",
+            text: "Here is the PDF I created!",
+          })
+          .then(() => alert("PDF shared successfully!"))
+          .catch((error) => alert("Error sharing PDF: " + error));
+      } else {
+        alert("Sharing is not supported on this device.");
       }
-      else{
-        pdf.save(words[0]+" "+words[1]+" "+words[2]+" output.pdf"); // Save the PDF
+    }
+
+    // Share via Email
+    function shareViaEmail() {
+      if (!generatedPDFBlob) {
+        alert("Please generate the PDF first.");
+        return;
       }
-    }
-      // Share PDF
-  function sharePDF() {
-    if (!generatedPDFBlob) {
-      alert("Please generate the PDF first.");
-      return;
-    }
 
-    const file = new File([generatedPDFBlob], "GeneratedDocument.pdf", {
-      type: "application/pdf",
-    });
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator
-        .share({
-          files: [file],
-          title: "Generated PDF",
-          text: "Here is the PDF I created!",
-        })
-        .then(() => alert("PDF shared successfully!"))
-        .catch((error) => alert("Error sharing PDF: " + error));
-    } else {
-      alert("Sharing is not supported on this device.");
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const base64PDF = e.target.result.split(",")[1];
+        const emailLink = `mailto:?subject=Generated PDF&body=Here is the PDF I created!&attachment=${base64PDF}`;
+        window.location.href = emailLink;
+      };
+      reader.readAsDataURL(generatedPDFBlob);
     }
-  }
-
-  // Share via Email
-  function shareViaEmail() {
-    if (!generatedPDFBlob) {
-      alert("Please generate the PDF first.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const base64PDF = e.target.result.split(",")[1]; // Extract Base64 string
-      const emailLink = `mailto:?subject=Generated PDF&body=Here is the PDF I created!&attachment=${base64PDF}`;
-      window.location.href = emailLink;
-    };
-    reader.readAsDataURL(generatedPDFBlob);
-  }
   </script>
-  
 </body>
 </html>

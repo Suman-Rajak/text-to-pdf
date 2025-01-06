@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,10 +9,13 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      background: #c0392b;  /* fallback for old browsers */
-background: -webkit-linear-gradient(to right, #8e44ad, #c0392b);  /* Chrome 10-25, Safari 5.1-6 */
-background: linear-gradient(to right, #8e44ad, #c0392b); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
-color: white;
+      background: #c0392b;
+      /* fallback for old browsers */
+      background: -webkit-linear-gradient(to right, #8e44ad, #c0392b);
+      /* Chrome 10-25, Safari 5.1-6 */
+      background: linear-gradient(to right, #8e44ad, #c0392b);
+      /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+      color: white;
       margin: 0;
       padding: 0;
     }
@@ -39,21 +43,32 @@ color: white;
       border-radius: 15px;
       /* resize: none; */
       border: none;
-      background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent white background */
-      color: #333; /* Dark text for contrast */
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+      background-color: rgba(255, 255, 255, 0.8);
+      /* Slightly transparent white background */
+      color: #333;
+      /* Dark text for contrast */
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      /* Subtle shadow for depth */
     }
-    select,input{
+
+    select,
+    input {
       border-radius: 10px;
       outline: none;
+      width: 2rem;
     }
-    
 
-textarea:focus, select:focus, input:focus{
-  outline: none;
-      border-color: #ff8c00; /* Highlighted border on focus */
-      box-shadow: 0 0 10px rgba(255, 140, 0, 0.7); /* Glow effect on focus */
-}
+
+    textarea:focus,
+    select:focus,
+    input:focus {
+      outline: none;
+      border-color: #ff8c00;
+      /* Highlighted border on focus */
+      box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+      /* Glow effect on focus */
+    }
+
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -72,7 +87,8 @@ textarea:focus, select:focus, input:focus{
       margin-bottom: 5px;
     }
 
-    .controls select, .controls input {
+    .controls select,
+    .controls input {
       width: 100%;
       padding: 5px;
       font-size: 16px;
@@ -86,7 +102,8 @@ textarea:focus, select:focus, input:focus{
     }
 
     .buttons button {
-      background: linear-gradient(to right, #4caf50, #8bc34a); /* Green gradient */
+      background: linear-gradient(to right, #4caf50, #8bc34a);
+      /* Green gradient */
       color: #fff;
       border: none;
       padding: 10px 20px;
@@ -94,17 +111,35 @@ textarea:focus, select:focus, input:focus{
       /* border-radius: 5px; */
       cursor: pointer;
       transition: background 0.3s;
-      border-radius: 25px; /* Fully rounded button */
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+      border-radius: 25px;
+      /* Fully rounded button */
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      /* Subtle shadow */
     }
 
     .buttons button:hover {
-      background: linear-gradient(to right, #388e3c, #689f38); /* Darker green on hover */
-      transform: scale(1.05); /* Slight zoom effect on hover */    }
+      background: linear-gradient(to right, #388e3c, #689f38);
+      /* Darker green on hover */
+      transform: scale(1.05);
+      /* Slight zoom effect on hover */
+    }
 
     .buttons button:disabled {
       background: #ccc;
       cursor: not-allowed;
+    }
+
+    img {
+      position: relative;
+      border-radius: 8rem;
+      height: 80px;
+    }
+
+    .upp {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      gap: 2rem;
     }
 
     /* Responsive design */
@@ -131,9 +166,14 @@ textarea:focus, select:focus, input:focus{
     }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <h1>Text to PDF Converter</h1>
+    <div class="upp">
+      <h1>Text to PDF Converter (By Suman 😎)</h1>
+      <img src="hero-banner.jpg" alt="suman-image">
+    </div>
+    <br><br>
     <textarea id="textInput" placeholder="Enter your text here..."></textarea>
     <div class="controls">
       <div>
@@ -192,14 +232,14 @@ textarea:focus, select:focus, input:focus{
         maxWidth: pdfDoc.internal.pageSize.width - margins.left - margins.right,
       });
 
-      if(words[1]==undefined && words[2] == undefined){
-      fname = words[0]+" output.pdf"; // Save the PDF
+      if (words[1] == undefined && words[2] == undefined) {
+        fname = words[0] + " output.pdf"; // Save the PDF
       }
-      else if(words[2] == undefined){
-        fname = words[0]+" "+words[1]+" output.pdf"; // Save the PDF
+      else if (words[2] == undefined) {
+        fname = words[0] + " " + words[1] + " output.pdf"; // Save the PDF
       }
-      else{
-        fname = words[0]+" "+words[1]+" "+words[2]+" output.pdf"; // Save the PDF
+      else {
+        fname = words[0] + " " + words[1] + " " + words[2] + " output.pdf"; // Save the PDF
       }
     }
 
@@ -237,4 +277,5 @@ textarea:focus, select:focus, input:focus{
     generatePDF();
   </script>
 </body>
+
 </html>

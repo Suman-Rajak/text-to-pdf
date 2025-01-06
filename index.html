@@ -102,39 +102,50 @@ background: linear-gradient(to right, #8e44ad, #c0392b); /* W3C, IE 10+/ Edge, F
     </select>
   </div>
 <br><br>
-  <textarea id="text-input" placeholder="Enter your text here..."></textarea><br>
+  <textarea id="text-input" placeholder="Enter your text here..." wrap="soft"></textarea><br>
   <button onclick="generatePDF()">Download PDF</button>
   
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
   <script>
-    async function generatePDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      words = []
-
-      const text = document.getElementById('text-input').value;
+    // Generate PDF
+    function generatePDF() {
+      // Get text area value
+      const textArea = document.getElementById("text-input");
+      const text = textArea.value;
       words = text.split(" ")
-      const fontSize = parseInt(document.getElementById('font-size').value, 10);
-      const fontStyle = document.getElementById('font-style').value;
-      const fontFamily = document.getElementById('font-family').value;
-
-      // Set font properties
-      doc.setFont(fontFamily, fontStyle);
-      doc.setFontSize(fontSize);
-
-      // Add text to PDF
-      doc.text(text, 10, 20); // Starting position (10, 20)
-      if(words[1]==undefined && words[2] == undefined){
-      doc.save(words[0]+" output.pdf"); // Save the PDF
+  
+      // Get font settings
+      const fontSize = parseInt(document.getElementById("font-size").value);
+      const fontStyle = document.getElementById("font-style").value;
+      const fontFamily = document.getElementById("font-family").value;
+  
+      // Initialize jsPDF
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+  
+      // Set font settings
+      pdf.setFont(fontFamily, fontStyle);
+      pdf.setFontSize(fontSize);
+  
+      // Add text with auto-wrap
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 10; // Margin from the edges
+      const wrappedText = pdf.splitTextToSize(text, pageWidth - 2 * margin); // Auto-wrap text
+      pdf.text(wrappedText, margin, margin + 10); // Add text with padding
+  
+      // Save the PDF
+       if(words[1]==undefined && words[2] == undefined){
+      pdf.save(words[0]+" output.pdf"); // Save the PDF
       }
       else if(words[2] == undefined){
-        doc.save(words[0]+" "+words[1]+" output.pdf"); // Save the PDF
+        pdf.save(words[0]+" "+words[1]+" output.pdf"); // Save the PDF
       }
       else{
-        doc.save(words[0]+" "+words[1]+" "+words[2]+" output.pdf"); // Save the PDF
+        pdf.save(words[0]+" "+words[1]+" "+words[2]+" output.pdf"); // Save the PDF
       }
     }
   </script>
+  
 </body>
 </html>

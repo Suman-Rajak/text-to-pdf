@@ -216,10 +216,8 @@
     const shareBtn = document.getElementById('shareBtn');
 
     let pdfDoc;
-
     function generatePDF() {
       const text = textInput.value;
-      words = text.split(" ")
       const fontSize = parseInt(fontSizeInput.value);
       const fontStyle = fontStyleInput.value;
       const fontFamily = fontFamilyInput.value;
@@ -227,31 +225,47 @@
       pdfDoc = new jsPDF();
       pdfDoc.setFont(fontFamily, fontStyle);
       pdfDoc.setFontSize(fontSize);
-      const margins = { top: 10, left: 10, right: 10 };
-      pdfDoc.text(text, margins.left, margins.top, {
-        maxWidth: pdfDoc.internal.pageSize.width - margins.left - margins.right,
-      });
 
-      if (words[1] == undefined && words[2] == undefined) {
-        fname = words[0] + " output.pdf"; // Save the PDF
-      }
-      else if (words[2] == undefined) {
-        fname = words[0] + " " + words[1] + " output.pdf"; // Save the PDF
-      }
-      else {
-        fname = words[0] + " " + words[1] + " " + words[2] + " output.pdf"; // Save the PDF
-      }
+      const margins = { top: 20, left: 15, right: 15 };
+      const pageHeight = pdfDoc.internal.pageSize.height - margins.top - 10;
+
+      // Split text into lines that fit within the page width
+      const lines = pdfDoc.splitTextToSize(
+        text,
+        pdfDoc.internal.pageSize.width - margins.left - margins.right
+      );
+
+      let y = margins.top;
+
+      // Add lines to the PDF, and create new pages as needed
+      lines.forEach((line) => {
+        if (y + fontSize > pageHeight) {
+          pdfDoc.addPage();
+          y = margins.top; // Reset to top margin for new page
+        }
+        pdfDoc.text(line, margins.left, y);
+        y += fontSize + 1; // Add 2 for line spacing
+      });
     }
+
+
+
 
     function downloadPDF() {
-      if (!pdfDoc) generatePDF();
-      pdfDoc.save(fname);
+      if (!pdfDoc) generatePDF(); // Ensure the PDF is generated
+      // Extract the first few letters from the input text
+      const text = textInput.value;
+      const fileName = text.trim().slice(0, 10).replace(/\s+/g, '_'); // Use the first 10 characters, replace spaces with underscores
+      pdfDoc.save(`${fileName}.pdf`);
     }
+
 
     async function sharePDF() {
       if (!pdfDoc) generatePDF();
       const pdfBlob = pdfDoc.output('blob');
-      const file = new File([pdfBlob], fname, { type: 'application/pdf' });
+      const text = textInput.value;
+      const fileName = text.trim().slice(0, 10).replace(/\s+/g, '_'); // Use the first 10 characters, replace spaces with underscores
+      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
       if (navigator.share) {
         try {

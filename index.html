@@ -217,7 +217,7 @@
 
     let pdfDoc;
     function generatePDF() {
-      const text = textInput.value;
+      const text = textInput.value.trim();
       const fontSize = parseInt(fontSizeInput.value);
       const fontStyle = fontStyleInput.value;
       const fontFamily = fontFamilyInput.value;
@@ -265,7 +265,7 @@
       const pdfBlob = pdfDoc.output('blob');
       const text = textInput.value;
       const fileName = text.trim().slice(0, 10).replace(/\s+/g, '_'); // Use the first 10 characters, replace spaces with underscores
-      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
 
       if (navigator.share) {
         try {

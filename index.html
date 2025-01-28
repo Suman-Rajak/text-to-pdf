@@ -2,294 +2,315 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Text to PDF Converter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #c0392b;
-      /* fallback for old browsers */
-      background: -webkit-linear-gradient(to right, #8e44ad, #c0392b);
-      /* Chrome 10-25, Safari 5.1-6 */
-      background: linear-gradient(to right, #8e44ad, #c0392b);
-      /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
-      color: white;
-      margin: 0;
-      padding: 0;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to PDF Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #c0392b;
+            /* fallback for old browsers */
+            background: -webkit-linear-gradient(to right, #8e44ad, #c0392b);
+            /* Chrome 10-25, Safari 5.1-6 */
+            background: linear-gradient(to right, #8e44ad, #c0392b);
+            /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
 
-    .container {
-      max-width: 800px;
-      margin: 50px auto;
-      padding: 20px;
-      background: transparent;
-      border-radius: 10px;
-      /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); */
-    }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: transparent;
+            border-radius: 10px;
+            /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); */
+        }
 
-    h1 {
-      margin-bottom: 20px;
-    }
+        h1 {
+            margin-bottom: 20px;
+        }
 
-    textarea {
-      width: 100%;
-      height: 200px;
-      margin-bottom: 20px;
-      padding: 10px;
-      font-size: 16px;
-      /* border: 1px solid #ccc; */
-      border-radius: 15px;
-      /* resize: none; */
-      border: none;
-      background-color: rgba(255, 255, 255, 0.8);
-      /* Slightly transparent white background */
-      color: #333;
-      /* Dark text for contrast */
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      /* Subtle shadow for depth */
-    }
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 20px;
+            padding: 10px;
+            font-size: 16px;
+            /* border: 1px solid #ccc; */
+            border-radius: 15px;
+            /* resize: none; */
+            border: none;
+            background-color: rgba(255, 255, 255, 0.8);
+            /* Slightly transparent white background */
+            color: #333;
+            /* Dark text for contrast */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            /* Subtle shadow for depth */
+        }
 
-    select,
-    input {
-      border-radius: 10px;
-      outline: none;
-      width: 2rem;
-    }
+        select,
+        input {
+            border-radius: 10px;
+            outline: none;
+            width: 2rem;
+        }
 
 
-    textarea:focus,
-    select:focus,
-    input:focus {
-      outline: none;
-      border-color: #ff8c00;
-      /* Highlighted border on focus */
-      box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
-      /* Glow effect on focus */
-    }
+        textarea:focus,
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #ff8c00;
+            /* Highlighted border on focus */
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+            /* Glow effect on focus */
+        }
 
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
 
-    .controls div {
-      flex: 1;
-      margin: 0 10px;
-      min-width: 200px;
-    }
+        .controls div {
+            flex: 1;
+            margin: 0 10px;
+            min-width: 200px;
+        }
 
-    .controls label {
-      display: block;
-      margin-bottom: 5px;
-    }
+        .controls label {
+            display: block;
+            margin-bottom: 5px;
+        }
 
-    .controls select,
-    .controls input {
-      width: 100%;
-      padding: 5px;
-      font-size: 16px;
-    }
+        .controls select,
+        .controls input {
+            width: 100%;
+            padding: 5px;
+            font-size: 16px;
+        }
 
-    .buttons {
-      display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
 
-    .buttons button {
-      background: linear-gradient(to right, #4caf50, #8bc34a);
-      /* Green gradient */
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      /* border-radius: 5px; */
-      cursor: pointer;
-      transition: background 0.3s;
-      border-radius: 25px;
-      /* Fully rounded button */
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-      /* Subtle shadow */
-    }
+        .buttons button {
+            background: linear-gradient(to right, #4caf50, #8bc34a);
+            /* Green gradient */
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            /* border-radius: 5px; */
+            cursor: pointer;
+            transition: background 0.3s;
+            border-radius: 25px;
+            /* Fully rounded button */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            /* Subtle shadow */
+        }
 
-    .buttons button:hover {
-      background: linear-gradient(to right, #388e3c, #689f38);
-      /* Darker green on hover */
-      transform: scale(1.05);
-      /* Slight zoom effect on hover */
-    }
+        .buttons button:hover {
+            background: linear-gradient(to right, #388e3c, #689f38);
+            /* Darker green on hover */
+            transform: scale(1.05);
+            /* Slight zoom effect on hover */
+        }
 
-    .buttons button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
+        .buttons button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
 
-    img {
-      position: relative;
-      border-radius: 8rem;
-      height: 80px;
-    }
+        img {
+            position: relative;
+            border-radius: 8rem;
+            height: 80px;
+        }
 
-    .upp {
-      display: flex;
-      flex-direction: row;
-      justify-content: center;
-      gap: 2rem;
-    }
+        .upp {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 2rem;
+        }
 
-    /* Responsive design */
-    @media (max-width: 768px) {
-      .container {
-        margin: 20px;
-        padding: 15px;
-      }
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+                padding: 15px;
+            }
 
-      .controls div {
-        flex: 1 1 100%;
-        margin-bottom: 10px;
-      }
+            .controls div {
+                flex: 1 1 100%;
+                margin-bottom: 10px;
+            }
 
-      .buttons {
-        flex-direction: column;
-        align-items: center;
-      }
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
 
-      .buttons button {
-        width: 100%;
-        max-width: 200px;
-      }
-    }
-  </style>
+            .buttons button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="upp">
-      <h1>Text to PDF Converter (By Suman 😎)</h1>
-      <img src="hero-banner.jpg" alt="suman-image">
+    <div class="container">
+        <div class="upp">
+            <h1>Text to PDF Converter (By Suman 😎)</h1>
+            <img src="hero-banner.jpg" alt="suman-image">
+        </div>
+        <br><br>
+        <textarea id="textInput" placeholder="Enter your text here..."></textarea>
+        <div class="controls">
+            <div>
+                <label for="fontSize">Font Size:</label>
+                <input type="number" id="fontSize" value="16" min="10" max="72">
+            </div>
+            <div>
+                <label for="fontStyle">Font Style:</label>
+                <select id="fontStyle">
+                    <option value="normal">Normal</option>
+                    <option value="bold">Bold</option>
+                    <option value="italic">Italic</option>
+                </select>
+            </div>
+            <div>
+                <label for="fontFamily">Font:</label>
+                <select id="fontFamily">
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier">Courier</option>
+                    <option value="Arial">Arial</option>
+                </select>
+            </div>
+        </div>
+        <div class="buttons">
+            <button id="downloadBtn">Download PDF</button>
+            <button id="shareBtn">Share PDF</button>
+        </div>
     </div>
-    <br><br>
-    <textarea id="textInput" placeholder="Enter your text here..."></textarea>
-    <div class="controls">
-      <div>
-        <label for="fontSize">Font Size:</label>
-        <input type="number" id="fontSize" value="16" min="10" max="72">
-      </div>
-      <div>
-        <label for="fontStyle">Font Style:</label>
-        <select id="fontStyle">
-          <option value="normal">Normal</option>
-          <option value="bold">Bold</option>
-          <option value="italic">Italic</option>
-        </select>
-      </div>
-      <div>
-        <label for="fontFamily">Font:</label>
-        <select id="fontFamily">
-          <option value="Helvetica">Helvetica</option>
-          <option value="Times New Roman">Times New Roman</option>
-          <option value="Courier">Courier</option>
-          <option value="Arial">Arial</option>
-        </select>
-      </div>
-    </div>
-    <div class="buttons">
-      <button id="downloadBtn">Download PDF</button>
-      <button id="shareBtn">Share PDF</button>
-    </div>
-  </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script>
-    const { jsPDF } = window.jspdf;
+    <script>
+        document.getElementById('downloadBtn').addEventListener('click', function () {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
-    const textInput = document.getElementById('textInput');
-    const fontSizeInput = document.getElementById('fontSize');
-    const fontStyleInput = document.getElementById('fontStyle');
-    const fontFamilyInput = document.getElementById('fontFamily');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const shareBtn = document.getElementById('shareBtn');
+            let text = document.getElementById('textInput').value;
+            const fontSize = document.getElementById('fontSize').value;
+            const fontStyle = document.getElementById('fontStyle').value;
+            const fontFamily = document.getElementById('fontFamily').value;
 
-    let pdfDoc;
-    function generatePDF() {
-      const text = textInput.value.trim();
-      const fontSize = parseInt(fontSizeInput.value);
-      const fontStyle = fontStyleInput.value;
-      const fontFamily = fontFamilyInput.value;
+            // Replace special characters
+            text = text.replace(/≤/g, '<=')
+                .replace(/≥/g, '>=')
+                .replace(/≠/g, '!=')
+                .replace(/±/g, '+/-')
+                .replace(/µ/g, 'u')
+                .replace(/°/g, 'deg')
+                .replace(/∞/g, 'infinity')
+                .replace(/√/g, 'sqrt')
+                .replace(/∑/g, 'sum')
+                .replace(/π/g, 'pi');
 
-      pdfDoc = new jsPDF();
-      pdfDoc.setFont(fontFamily, fontStyle);
-      pdfDoc.setFontSize(fontSize);
+            doc.setFontSize(fontSize);
+            doc.setFont(fontFamily, fontStyle);
 
-      const margins = { top: 20, left: 15, right: 15 };
-      const pageHeight = pdfDoc.internal.pageSize.height - margins.top - 10;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 10;
+            const textWidth = pageWidth - margin * 2;
+            const lines = doc.splitTextToSize(text, textWidth);
 
-      // Split text into lines that fit within the page width
-      const lines = pdfDoc.splitTextToSize(
-        text,
-        pdfDoc.internal.pageSize.width - margins.left - margins.right
-      );
+            let y = margin;
+            lines.forEach(line => {
+                if (y + fontSize / 2 > doc.internal.pageSize.getHeight() - margin) {
+                    doc.addPage();
+                    y = margin;
+                }
+                doc.text(line, margin, y);
+                y += fontSize / 2;
+            });
 
-      let y = margins.top;
+            // Generate file name
+            const fileName = text.substring(0, 10).replace(/\s+/g, '_') + '.pdf';
+            doc.save(fileName);
+        });
 
-      // Add lines to the PDF, and create new pages as needed
-      lines.forEach((line) => {
-        if (y + fontSize > pageHeight) {
-          pdfDoc.addPage();
-          y = margins.top; // Reset to top margin for new page
-        }
-        pdfDoc.text(line, margins.left, y);
-        y += fontSize + 1; // Add 2 for line spacing
-      });
-    }
+        document.getElementById('shareBtn').addEventListener('click', function () {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
+            let text = document.getElementById('textInput').value;
+            const fontSize = document.getElementById('fontSize').value;
+            const fontStyle = document.getElementById('fontStyle').value;
+            const fontFamily = document.getElementById('fontFamily').value;
 
+            // Replace special characters
+            text = text.replace(/≤/g, '<=')
+                .replace(/≥/g, '>=')
+                .replace(/≠/g, '!=')
+                .replace(/±/g, '+/-')
+                .replace(/µ/g, 'u')
+                .replace(/°/g, 'deg')
+                .replace(/∞/g, 'infinity')
+                .replace(/√/g, 'sqrt')
+                .replace(/∑/g, 'sum')
+                .replace(/π/g, 'pi');
 
+            doc.setFontSize(fontSize);
+            doc.setFont(fontFamily, fontStyle);
 
-    function downloadPDF() {
-      if (!pdfDoc) generatePDF(); // Ensure the PDF is generated
-      // Extract the first few letters from the input text
-      const text = textInput.value;
-      const fileName = text.trim().slice(0, 10).replace(/\s+/g, '_'); // Use the first 10 characters, replace spaces with underscores
-      pdfDoc.save(`${fileName}.pdf`);
-    }
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 10;
+            const textWidth = pageWidth - margin * 2;
+            const lines = doc.splitTextToSize(text, textWidth);
 
+            let y = margin;
+            lines.forEach(line => {
+                if (y + fontSize / 2 > doc.internal.pageSize.getHeight() - margin) {
+                    doc.addPage();
+                    y = margin;
+                }
+                doc.text(line, margin, y);
+                y += fontSize / 2;
+            });
 
-    async function sharePDF() {
-      if (!pdfDoc) generatePDF();
-      const pdfBlob = pdfDoc.output('blob');
-      const text = textInput.value;
-      const fileName = text.trim().slice(0, 10).replace(/\s+/g, '_'); // Use the first 10 characters, replace spaces with underscores
-      const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
+            // Generate file name
+            const fileName = text.substring(0, 10).replace(/\s+/g, '_') + '.pdf';
 
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            files: [file],
-          });
-        } catch (error) {
-          alert('Sharing failed: ' + error.message);
-        }
-      } else {
-        alert('Web Share API is not supported on this device.');
-      }
-    }
+            // Convert PDF to Blob
+            const pdfBlob = doc.output('blob');
 
-    textInput.addEventListener('input', generatePDF);
-    fontSizeInput.addEventListener('change', generatePDF);
-    fontStyleInput.addEventListener('change', generatePDF);
-    fontFamilyInput.addEventListener('change', generatePDF);
-    downloadBtn.addEventListener('click', downloadPDF);
-    shareBtn.addEventListener('click', sharePDF);
-
-    // Generate the PDF initially
-    generatePDF();
-  </script>
+            // Share PDF
+            if (navigator.share) {
+                navigator.share({
+                    title: 'PDF Document',
+                    text: 'Check out this PDF document!',
+                    files: [new File([pdfBlob], fileName, { type: 'application/pdf' })]
+                }).then(() => {
+                    console.log('PDF shared successfully!');
+                }).catch(error => {
+                    console.error('Error sharing PDF:', error);
+                });
+            } else {
+                alert('Sharing is not supported in this browser.');
+            }
+        });
+    </script>
 </body>
 
 </html>

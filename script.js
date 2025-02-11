@@ -1,3 +1,16 @@
+var visit = document.getElementById('visit');
+
+// Retrieve previous visit count from localStorage
+var visitcount = localStorage.getItem('visitcount') ? parseInt(localStorage.getItem('visitcount')) : 0;
+
+// Increment and update the UI
+visitcount += 1;
+visit.innerText = visitcount;
+
+// Save the updated count back to localStorage
+localStorage.setItem('visitcount', visitcount);
+
+
 document.getElementById('downloadBtn').addEventListener('click', function () {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -9,15 +22,25 @@ document.getElementById('downloadBtn').addEventListener('click', function () {
 
     // Replace special characters
     text = text.replace(/≤/g, '<=')
-        .replace(/≥/g, '>=')
-        .replace(/≠/g, '!=')
-        .replace(/±/g, '+/-')
-        .replace(/µ/g, 'u')
-        .replace(/°/g, 'deg')
-        .replace(/∞/g, 'infinity')
-        .replace(/√/g, 'sqrt')
-        .replace(/∑/g, 'sum')
-        .replace(/π/g, 'pi');
+               .replace(/≥/g, '>=')
+               .replace(/≠/g, '!=')
+               .replace(/±/g, '+/-')
+               .replace(/µ/g, 'u')
+               .replace(/°/g, 'deg')
+               .replace(/∞/g, 'infinity')
+               .replace(/√/g, 'sqrt')
+               .replace(/∑/g, 'sum')
+               .replace(/π/g, 'pi');
+
+    // Format text for bold, italic, and underline
+    text = text.replace(/\*(.*?)\*/g, function(match, p1) {
+        return `<b>${p1}</b>`;
+    }).replace(/_(.*?)_/g, function(match, p1) {
+        return `<i>${p1}</i>`;
+    }).replace(/~(.*?)~/g, function(match, p1) {
+        return `<u>${p1}</u>`;
+    });
+    
 
     doc.setFontSize(fontSize);
     doc.setFont(fontFamily, fontStyle);
@@ -53,15 +76,25 @@ document.getElementById('shareBtn').addEventListener('click', function () {
 
     // Replace special characters
     text = text.replace(/≤/g, '<=')
-        .replace(/≥/g, '>=')
-        .replace(/≠/g, '!=')
-        .replace(/±/g, '+/-')
-        .replace(/µ/g, 'u')
-        .replace(/°/g, 'deg')
-        .replace(/∞/g, 'infinity')
-        .replace(/√/g, 'sqrt')
-        .replace(/∑/g, 'sum')
-        .replace(/π/g, 'pi');
+               .replace(/≥/g, '>=')
+               .replace(/≠/g, '!=')
+               .replace(/±/g, '+/-')
+               .replace(/µ/g, 'u')
+               .replace(/°/g, 'deg')
+               .replace(/∞/g, 'infinity')
+               .replace(/√/g, 'sqrt')
+               .replace(/∑/g, 'sum')
+               .replace(/π/g, 'pi');
+
+    // Format text for bold, italic, and underline
+    text = text.replace(/\*(.*?)\*/g, function(match, p1) {
+        return `<b>${p1}</b>`;
+    }).replace(/_(.*?)_/g, function(match, p1) {
+        return `<i>${p1}</i>`;
+    }).replace(/~(.*?)~/g, function(match, p1) {
+        return `<u>${p1}</u>`;
+    });
+    
 
     doc.setFontSize(fontSize);
     doc.setFont(fontFamily, fontStyle);

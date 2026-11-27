@@ -370,11 +370,13 @@ textarea {
 .foot-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
     min-width: 0;
 }
 
 .stats {
+    margin-left: 4px;
     font-size: 12.5px;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
@@ -383,6 +385,16 @@ textarea {
 .actions {
     display: flex;
     gap: 8px;
+}
+
+@media (max-width: 520px) {
+    .actions {
+        width: 100%;
+    }
+
+    .actions .btn-primary {
+        flex: 1;
+    }
 }
 
 /* ---------- Buttons ---------- */

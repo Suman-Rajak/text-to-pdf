@@ -664,6 +664,48 @@
         refine: ['Checking Bengali words…', 'Final pass', 0.9, 1],
     };
 
+    // Apps like Word copy text together with a picture of it — prefer the text in that case.
+    // Copying a file in Finder/Explorer gives the file plus (at most) its name as text.
+    function textIsOnlyFileNames(text, files) {
+        const t = text.trim();
+        if (!t) return true;
+        const names = files.map((f) => f.name);
+        return t.split(/\r?\n/).every((l) => names.includes(l.trim()) || /^[^\s\\/]+\.(png|jpe?g|webp|gif|bmp|heic|tiff?|txt|md)$/i.test(l.trim()));
+    }
+
+    const PASTE_KEYS = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘V' : 'Ctrl+V';
+
+    async function pasteFromClipboard() {
+        const clip = navigator.clipboard;
+        if (!clip || (!clip.read && !clip.readText)) {
+            toast(`Your browser doesn't allow this button — press ${PASTE_KEYS} instead.`, true);
+            return;
+        }
+        try {
+            let text = '';
+            const files = [];
+            if (clip.read) {
+                for (const item of await clip.read()) {
+                    if (item.types.includes('text/plain')) text += await (await item.getType('text/plain')).text();
+                    const type = item.types.find((t) => t.startsWith('image/'));
+                    if (type) {
+                        const blob = await item.getType(type);
+                        files.push(new File([blob], `clipboard.${type.split('/')[1] || 'png'}`, { type }));
+                    }
+                }
+            } else {
+                text = await clip.readText();
+            }
+            if (files.length && textIsOnlyFileNames(text, files)) openFiles(files);
+            else if (text.trim()) { insertText(text.replace(/\r\n?/g, '\n')); toast('Pasted from clipboard'); }
+            else toast('The clipboard has no image or text to paste.', true);
+        } catch (err) {
+            toast(err && err.name === 'NotAllowedError'
+                ? `Clipboard access was blocked — press ${PASTE_KEYS} instead.`
+                : `Couldn't read the clipboard — press ${PASTE_KEYS} instead.`, true);
+        }
+    }
+
     async function openFiles(files) {
         if (ocrBusy) { toast('Please wait for the current image to finish.', true); return; }
         const images = files.filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp|bmp|gif|heic|tiff?)$/i.test(f.name));
@@ -768,13 +810,26 @@
             e.preventDefault();
             openFiles(files);
         });
-        els.text.addEventListener('paste', (e) => {
-            const items = e.clipboardData ? Array.from(e.clipboardData.items) : [];
-            const images = items.filter((i) => i.kind === 'file' && i.type.startsWith('image/')).map((i) => i.getAsFile()).filter(Boolean);
-            if (!images.length) return;
-            e.preventDefault();
-            openFiles(images);
+        // Ctrl+V / ⌘V anywhere on the page: images & files are opened, text goes into the editor.
+        document.addEventListener('paste', (e) => {
+            const dt = e.clipboardData;
+            if (!dt) return;
+            let files = Array.from(dt.files || []);
+            if (!files.length) files = Array.from(dt.items || []).filter((i) => i.kind === 'file').map((i) => i.getAsFile()).filter(Boolean);
+            const text = dt.getData('text/plain') || '';
+            if (files.length && textIsOnlyFileNames(text, files)) {
+                e.preventDefault();
+                openFiles(files);
+                return;
+            }
+            const field = e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]');
+            if (!field && text) {
+                e.preventDefault();
+                insertText(text.replace(/\r\n?/g, '\n'));
+                els.text.focus();
+            }
         });
+        $('pasteBtn').addEventListener('click', pasteFromClipboard);
         $('ocrCancel').addEventListener('click', () => {
             ocrRun++;
             ocrBusy = false;

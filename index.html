@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="ocr.js" defer></script>
     <script src="script.js" defer></script>
 </head>
 
@@ -87,11 +88,29 @@
             <div class="textarea-wrap" id="dropZone">
                 <textarea id="textInput" spellcheck="true" aria-label="Text to convert"
                     placeholder="Type or paste your text here…&#10;এখানে আপনার লেখা টাইপ বা পেস্ট করুন…"></textarea>
-                <div class="drop-hint" aria-hidden="true">Drop a text file</div>
+                <div class="drop-hint" aria-hidden="true">Drop an image or text file</div>
+                <div class="ocr-status" id="ocrStatus" hidden>
+                    <div class="ocr-card" role="status" aria-live="polite">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <strong id="ocrLabel">Reading text from image…</strong>
+                        <div class="progress"><span id="ocrBar"></span></div>
+                        <small id="ocrDetail">English &amp; Bengali</small>
+                        <button type="button" class="link-btn" id="ocrCancel">Cancel</button>
+                    </div>
+                </div>
             </div>
 
             <div class="editor-foot">
-                <span class="stats" id="stats" aria-live="polite">0 words</span>
+                <div class="foot-left">
+                    <label class="btn btn-ghost" title="Open an image (photo, scan, screenshot) or a text file">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M12 3v12M7 8l5-5 5 5" />
+                        </svg>
+                        <span>Open image or file</span>
+                        <input type="file" id="fileInput" accept="image/*,.txt,.md,text/plain" multiple hidden>
+                    </label>
+                    <span class="stats" id="stats" aria-live="polite">0 words</span>
+                </div>
                 <div class="actions">
                     <button type="button" class="btn btn-secondary" id="shareBtn" hidden>
                         <svg viewBox="0 0 24 24" aria-hidden="true">

@@ -622,6 +622,98 @@
     }
 
     // ---------------------------------------------------------------
+    // Opening files & images (OCR)
+    // ---------------------------------------------------------------
+    const ocrEls = { box: $('ocrStatus'), label: $('ocrLabel'), bar: $('ocrBar'), detail: $('ocrDetail') };
+    let ocrBusy = false;
+    let ocrRun = 0;
+
+    function insertText(text) {
+        if (!text) return;
+        const ta = els.text;
+        if (!ta.value.trim()) {
+            ta.value = text;
+        } else {
+            const start = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+            const end = ta.selectionEnd != null ? ta.selectionEnd : start;
+            const before = ta.value.slice(0, start);
+            const after = ta.value.slice(end);
+            const pre = !before || /\n\n$/.test(before) ? '' : (/\n$/.test(before) ? '\n' : '\n\n');
+            const post = !after || /^\n/.test(after) ? '' : '\n\n';
+            ta.setRangeText(pre + text + post, start, end, 'end');
+        }
+        onTextChange();
+    }
+
+    function showOcr(label, detail, progress) {
+        ocrEls.box.hidden = false;
+        if (label) ocrEls.label.textContent = label;
+        if (detail != null) ocrEls.detail.textContent = detail;
+        ocrEls.bar.style.width = `${Math.round(Math.max(0, Math.min(1, progress || 0)) * 100)}%`;
+    }
+
+    function hideOcr() {
+        ocrEls.box.hidden = true;
+        ocrEls.bar.style.width = '0%';
+    }
+
+    const OCR_STAGES = {
+        load: ['Loading OCR engine…', 'First time only — about 8 MB', 0, 0.15],
+        recognize: ['Reading text from image…', 'English & Bengali', 0.15, 0.45],
+        retry: ['Improving accuracy…', 'Comparing enhanced versions', 0.45, 0.9],
+        refine: ['Checking Bengali words…', 'Final pass', 0.9, 1],
+    };
+
+    async function openFiles(files) {
+        if (ocrBusy) { toast('Please wait for the current image to finish.', true); return; }
+        const images = files.filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp|bmp|gif|heic|tiff?)$/i.test(f.name));
+        const texts = files.filter((f) => !images.includes(f));
+        for (const f of texts) {
+            if (f.size > 10 * 1024 * 1024) { toast(`${f.name} is too large (max 10 MB).`, true); continue; }
+            try { insertText((await f.text()).replace(/\r\n?/g, '\n')); } catch (e) { toast(`Could not read ${f.name}.`, true); }
+        }
+        if (!images.length) return;
+        if (!window.TextOCR) { toast('OCR is not available.', true); return; }
+
+        ocrBusy = true;
+        const run = ++ocrRun;
+        const cancelled = () => run !== ocrRun;
+        let lowConfidence = false;
+        let found = 0;
+        try {
+            for (let i = 0; i < images.length && !cancelled(); i++) {
+                const prefix = images.length > 1 ? `Image ${i + 1} of ${images.length} · ` : '';
+                let lastStage = 'load';
+                showOcr(OCR_STAGES.load[0], prefix + OCR_STAGES.load[1], 0);
+                const result = await window.TextOCR.recognize(images[i], (stage, p) => {
+                    const st = OCR_STAGES[stage] || OCR_STAGES[lastStage];
+                    lastStage = stage;
+                    showOcr(st[0], prefix + st[1], st[2] + (st[3] - st[2]) * (p || 0));
+                });
+                if (cancelled()) return;
+                if (result.text) {
+                    insertText(result.text);
+                    found++;
+                    if (result.confidence < 75) lowConfidence = true;
+                }
+            }
+            if (!found) toast('No text was found in the image.', true);
+            else if (lowConfidence) toast('Text extracted, but the image is unclear — please review it carefully.');
+            else toast(found > 1 ? `Text extracted from ${found} images` : 'Text extracted from image');
+        } catch (err) {
+            if (!cancelled()) {
+                console.error(err);
+                toast(err && err.message ? err.message : 'Could not read the image.', true);
+            }
+        } finally {
+            if (!cancelled()) {
+                ocrBusy = false;
+                hideOcr();
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------
     // Events
     // ---------------------------------------------------------------
     let draftTimer = 0;
@@ -658,7 +750,12 @@
             });
         }
 
-        // Drag & drop a .txt file onto the editor
+        // Open / drop / paste: images go through OCR, text files are inserted as-is.
+        const fileInput = $('fileInput');
+        fileInput.addEventListener('change', () => {
+            openFiles(Array.from(fileInput.files));
+            fileInput.value = '';
+        });
         ['dragenter', 'dragover'].forEach((type) => els.dropZone.addEventListener(type, (e) => {
             if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
             e.preventDefault();
@@ -666,11 +763,24 @@
         }));
         ['dragleave', 'drop'].forEach((type) => els.dropZone.addEventListener(type, () => els.dropZone.classList.remove('dragging')));
         els.dropZone.addEventListener('drop', (e) => {
-            const file = e.dataTransfer && e.dataTransfer.files[0];
-            if (!file) return;
+            const files = e.dataTransfer ? Array.from(e.dataTransfer.files) : [];
+            if (!files.length) return;
             e.preventDefault();
-            if (file.size > 10 * 1024 * 1024) { toast('That file is too large (max 10 MB).', true); return; }
-            file.text().then((t) => { els.text.value = t; onTextChange(); }, () => toast('Could not read that file.', true));
+            openFiles(files);
+        });
+        els.text.addEventListener('paste', (e) => {
+            const items = e.clipboardData ? Array.from(e.clipboardData.items) : [];
+            const images = items.filter((i) => i.kind === 'file' && i.type.startsWith('image/')).map((i) => i.getAsFile()).filter(Boolean);
+            if (!images.length) return;
+            e.preventDefault();
+            openFiles(images);
+        });
+        $('ocrCancel').addEventListener('click', () => {
+            ocrRun++;
+            ocrBusy = false;
+            if (window.TextOCR) window.TextOCR.cancel();
+            hideOcr();
+            toast('Cancelled.');
         });
 
         els.download.addEventListener('click', downloadPdf);

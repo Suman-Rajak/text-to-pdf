@@ -7,11 +7,14 @@
    2. Recognise with Bengali + English together, auto-deskewed.
    3. Also read a lighting-corrected copy and a second scale, and
       keep whichever reading Tesseract is most confident about.
+      Dark-mode screenshots are inverted first. Each line is taken
+      from whichever version read it most confidently.
    4. The combined model sometimes turns a Bengali word into
-      low-confidence Latin garbage; such words are re-read with
-      the Bengali-only model.
-   5. Clean up (danda, common Bengali confusions) and re-flow
-      wrapped lines into paragraphs.
+      low-confidence Latin garbage; such words (and other very
+      uncertain words) are re-read with the Bengali-only model.
+   5. Drop screenshot clutter (status bar, icons), read tables
+      cell by cell, clean up (danda, known Bengali confusions) and
+      re-flow wrapped lines into paragraphs.
    ========================================================= */
 (function () {
     'use strict';
@@ -141,9 +144,19 @@
         ctx.drawImage(img, 0, 0, w, h);
         const data = ctx.getImageData(0, 0, w, h);
         const px = data.data;
+        const hist = new Uint32Array(256);
         for (let i = 0; i < px.length; i += 4) {       // luminance grayscale
             const y = (px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114) | 0;
             px[i] = px[i + 1] = px[i + 2] = y;
+            hist[y]++;
+        }
+        // Dark mode (light text on a dark background): invert so the text is dark on light,
+        // which is what Tesseract is trained on.
+        let count = 0, med = 0;
+        const half = (px.length / 4) / 2;
+        while (med < 255 && (count += hist[med]) < half) med++;
+        if (med < 110) {
+            for (let i = 0; i < px.length; i += 4) px[i] = px[i + 1] = px[i + 2] = 255 - px[i];
         }
         ctx.putImageData(data, 0, 0);
         if (flat) flatten(ctx, w, h);
@@ -186,15 +199,19 @@
         return words.length ? score(words) : 0;
     }
 
-    const isLatinWord = (w) => LATIN.test(w.text) && !BENGALI.test(w.text);
+    const BN_LETTER = /[\u0985-\u09B9\u09BC-\u09D7\u09DC-\u09DF]/;
+    // Latin letters or ASCII digits and no Bengali letters (Bengali digits allowed, e.g. "6২৮২1").
+    const isLatinWord = (w) => /[A-Za-z0-9]/.test(w.text) && !BN_LETTER.test(w.text);
 
-    // In a line that is mostly Bengali, a Latin word is only trusted when the model is very sure.
+    // In a line that is mostly Bengali, a Latin word is only trusted when the model is very sure,
+    // and any very uncertain word gets a second opinion from the Bengali-only model.
     const mostlyBengali = (words) => words.filter((w) => BENGALI.test(w.text)).length >= words.length * 0.6;
 
     function suspiciousWords(line) {
         const words = line.words || [];
-        const limit = mostlyBengali(words) ? 85 : 65;
-        return words.filter((w) => isLatinWord(w) && w.confidence < limit);
+        const bn = mostlyBengali(words);
+        const limit = bn ? 85 : 65;
+        return words.filter((w) => (isLatinWord(w) && w.confidence < limit) || (bn && w.confidence < 60));
     }
 
     // Replace low-confidence Latin words in Bengali text by the Bengali-only model's reading.
@@ -229,13 +246,43 @@
                 const bad = c.filter((w) => suspicious.includes(w));
                 if (bad.length && b.length && b.some((w) => BENGALI.test(w.text))) {
                     const sb = score(b), sc = score(bad);
-                    if (sb >= 30 || sb > sc || (bnLine && sc < 50)) { result.push(...b); changed++; continue; }
+                    const latin = bad.some(isLatinWord);
+                    if (latin ? (sb >= 30 || sb > sc || (bnLine && sc < 50)) : sb > sc + 5) {
+                        b.forEach((w) => { w.repaired = true; });
+                        result.push(...b); changed++; continue;
+                    }
                 }
                 result.push(...c);
             }
             line.words = result;
         }
         return changed;
+    }
+
+    // Per-line choice between readings of differently pre-processed copies of the image.
+    function fuseLines(base, others) {
+        const norm = (b, f) => ({ x0: b.x0 * f, x1: b.x1 * f, y0: b.y0 * f, y1: b.y1 * f });
+        const otherLines = others.map((r) => ({ r, lines: linesOf(r.data).filter((l) => (l.words || []).length) }));
+        for (const line of linesOf(base.data)) {
+            if (!(line.words || []).length) continue;
+            const lb = norm(line.bbox, 1 / base.scale);
+            let best = null, bestScore = score(line.words);
+            for (const { r, lines } of otherLines) {
+                const matches = lines.filter((m) => {
+                    const mb = norm(m.bbox, 1 / r.scale);
+                    const cy = (mb.y0 + mb.y1) / 2;
+                    const overlap = Math.min(lb.x1, mb.x1) - Math.max(lb.x0, mb.x0);
+                    return cy >= lb.y0 && cy <= lb.y1 && overlap > 0.6 * Math.min(lb.x1 - lb.x0, mb.x1 - mb.x0);
+                });
+                if (matches.length !== 1) continue;                 // ambiguous line split → leave it
+                const sc = score(matches[0].words);
+                if (sc > bestScore + 2) { best = { line: matches[0], f: base.scale / r.scale }; bestScore = sc; }
+            }
+            if (best) {
+                line.words = best.line.words.map((w) => Object.assign({}, w, { bbox: norm(w.bbox, best.f) }));
+                line.bbox = norm(best.line.bbox, best.f);
+            }
+        }
     }
 
     // ---------------------------------------------------------------
@@ -251,53 +298,208 @@
         t = t.replace(/([ঀ-৿‌‍])[ \t]*[|।][ \t]*[|।]/g, '$1॥'); // double danda
         t = t.replace(/([ঀ-৿‌‍])[ \t]*[|।]/g, '$1।');           // pipe → danda, no space before it
         t = t.replace(/[ \t]+([,;:?!])(?=\s|$)/g, '$1');
+        t = t.replace(/([০-৯0-9]{1,3}[.)])(?=[\u0985-\u09B9\u09DC-\u09DF])/g, '$1 '); // "১.মডেল" → "১. মডেল"
+        t = t.replace(/(^|\s)['`‘](?=[\u0985-\u09B9])/g, '$1');                       // stray quote before a word
+        t = t.replace(/^[*·•●▪]\s+/, '• ');                                             // bullets
         for (const [re, rep] of BN_WORD_FIXES) t = t.replace(re, rep);
         return t.replace(/[ \t]{2,}/g, ' ').trim();
     }
 
-    const median = (arr) => {
+    const quantile = (arr, q) => {
         if (!arr.length) return 0;
         const a = arr.slice().sort((x, y) => x - y);
-        return a[Math.floor((a.length - 1) / 2)];
+        return a[Math.floor((a.length - 1) * q)];
     };
+    const median = (arr) => quantile(arr, 0.5);
 
-    // Rebuild paragraphs from the page geometry:
-    //  - a larger-than-usual vertical gap starts a new paragraph (blank line);
-    //  - a line that runs to the right edge was wrapped → join it with the next;
-    //  - otherwise keep the line break (poems, addresses, lists).
-    function buildText(data) {
+    const charCount = (t) => Array.from(t).filter((c) => !/\s/.test(c)).length;
+    const hasLetter = (t) => /\p{L}/u.test(t);
+
+    // Screenshots contain icons, status bars, etc. that OCR turns into junk "words".
+    function isJunkWord(w) {
+        const t = (w.text || '').trim();
+        if (!t) return true;
+        if (!hasLetter(t) && !/[0-9০-৯]/.test(t)) {
+            return /^\p{S}+$/u.test(t) && w.confidence < 90;       // icon-like symbols (©, =, @); keep punctuation
+        }
+        return !w.repaired && w.confidence < 30 && charCount(t) <= 2;   // tiny low-confidence fragments
+    }
+
+    function prepareLines(data, height) {
         const lines = [];
         for (const block of data.blocks || []) {
             for (const p of block.paragraphs || []) {
                 for (const l of p.lines || []) {
-                    if (!(l.words || []).length) continue;
-                    const text = cleanLine(l.words.map((w) => w.text).join(' '));
-                    if (text) lines.push({ text, box: l.bbox });
+                    const words = (l.words || []).filter((w) => (w.text || '').trim());
+                    if (!words.length) continue;
+                    const kept = words.filter((w) => !isJunkWord(w));
+                    if (!kept.length) continue;
+                    // Very low confidence overall, or mostly junk → status bar / icons, not text.
+                    const lineScore = score(words);
+                    if (lineScore < 50 || (lineScore < 65 && kept.length <= words.length / 2)) continue;
+                    if (!words.some((w) => w.confidence >= 70)) continue;   // nothing read with confidence → icons/noise
+                    const h = Math.max(1, l.bbox.y1 - l.bbox.y0);
+                    // Split at wide gaps (table columns, items far apart).
+                    const segs = [];
+                    let cur = [kept[0]];
+                    for (let i = 1; i < kept.length; i++) {
+                        if (kept[i].bbox.x0 - kept[i - 1].bbox.x1 > Math.max(h * 1.1, 12)) { segs.push(cur); cur = [kept[i]]; }
+                        else cur.push(kept[i]);
+                    }
+                    segs.push(cur);
+                    let segments = segs.map((ws) => ({
+                        words: ws, x0: ws[0].bbox.x0, x1: ws[ws.length - 1].bbox.x1,
+                        text: cleanLine(ws.map((w) => w.text).join(' ')),
+                    })).filter((sg) => sg.text);
+                    // Drop stray digits/symbols sitting apart from the real text (icons, badges).
+                    if (segments.length > 1) {
+                        segments = segments.filter((sg) => hasLetter(sg.text) || (charCount(sg.text) > 2 && score(sg.words) >= 85));
+                    }
+                    if (!segments.length) continue;
+                    // Phone status bar at the very top of a screenshot ("11:50 … 47%").
+                    if (height && l.bbox.y1 < height * 0.05 && /^\d{1,2}[:.]\d{2}\b/.test(segments[0].text)) continue;
+                    lines.push({
+                        h,
+                        segments,
+                        text: segments.map((sg) => sg.text).join(' '),
+                        box: {
+                            x0: segments[0].x0, x1: segments[segments.length - 1].x1,
+                            y0: Math.min(...kept.map((w) => w.bbox.y0)), y1: Math.max(...kept.map((w) => w.bbox.y1)),
+                        },
+                    });
                 }
             }
         }
+        return lines;
+    }
+
+    // If a segment straddles a known column gap, split it at the word gap inside that column gap.
+    function splitAtGutters(line, gutters) {
+        const out = [];
+        for (const sg of line.segments) {
+            let cur = [sg.words[0]];
+            for (let k = 1; k < sg.words.length; k++) {
+                const a = sg.words[k - 1].bbox.x1, b = sg.words[k].bbox.x0;
+                // The word gap must fill most of a known column gap (not just touch a wide one).
+                const atGutter = b - a >= Math.max(8, line.h * 0.5) &&
+                    gutters.some((g) => Math.min(b, g[1]) - Math.max(a, g[0]) >= (g[1] - g[0]) * 0.5);
+                if (atGutter) { out.push(cur); cur = [sg.words[k]]; } else cur.push(sg.words[k]);
+            }
+            out.push(cur);
+        }
+        return out.map((ws) => ({ words: ws, x0: ws[0].bbox.x0, x1: ws[ws.length - 1].bbox.x1, text: cleanLine(ws.map((w) => w.text).join(' ')) }))
+            .filter((sg) => sg.text);
+    }
+
+    // Find runs of lines that share the same column gaps (tables / side-by-side columns).
+    function findTables(lines, pitch) {
+        const tables = [];
+        let i = 0;
+        while (i < lines.length) {
+            const first = lines[i];
+            if (first.segments.length < 2) { i++; continue; }
+            let gutters = [];
+            for (let k = 1; k < first.segments.length; k++) gutters.push([first.segments[k - 1].x1, first.segments[k].x0]);
+            let j = i + 1, splitLines = 1;
+            for (; j < lines.length; j++) {
+                const ln = lines[j];
+                if (ln.box.y0 - lines[j - 1].box.y0 > pitch * 3) break;
+                const resplit = splitAtGutters(ln, gutters);
+                const segs = resplit.length > ln.segments.length ? resplit : ln.segments;
+                if (segs.length === 1) {
+                    const sg = segs[0];
+                    if (gutters.some((g) => sg.x0 < g[1] - 4 && sg.x1 > g[0] + 4)) break;    // spans the columns
+                } else {
+                    const gaps = [];
+                    for (let k = 1; k < segs.length; k++) gaps.push([segs[k - 1].x1, segs[k].x0]);
+                    if (gaps.length > gutters.length) break;
+                    if (!gaps.every((gp) => gutters.some((g) => gp[0] < g[1] && gp[1] > g[0]))) break;
+                    gutters = gutters.map((g) => {
+                        const m = gaps.find((gp) => gp[0] < g[1] && gp[1] > g[0]);
+                        return m ? [Math.max(g[0], m[0]), Math.min(g[1], m[1])] : g;
+                    });
+                    splitLines++;
+                }
+                ln.segments = segs;
+            }
+            if (splitLines >= 2) { tables.push({ start: i, end: j, gutters }); i = j; }
+            else i++;
+        }
+        return tables;
+    }
+
+    function tableText(lines, gutters, pitch) {
+        const cols = gutters.length + 1;
+        const colOf = (sg) => gutters.filter((g) => (sg.x0 + sg.x1) / 2 > g[1]).length;
+        const rows = [];
+        let row = null;
+        lines.forEach((ln, idx) => {
+            if (!row || ln.box.y0 - lines[idx - 1].box.y0 > pitch * 1.4) { row = Array.from({ length: cols }, () => []); rows.push(row); }
+            for (const sg of ln.segments) row[Math.min(cols - 1, colOf(sg))].push(sg.text);
+        });
+        return rows.map((r) => r.filter((c) => c.length).map((c) => joinWrapped(c)).join('\n')).join('\n\n');
+    }
+
+    function joinWrapped(parts) {
+        let out = '';
+        for (const t of parts) {
+            if (!out) out = t;
+            else if (/[A-Za-z]-$/.test(out) && /^[a-z]/.test(t)) out = out.slice(0, -1) + t;
+            else out += ' ' + t;
+        }
+        return out;
+    }
+
+    // Rebuild the text from the page geometry:
+    //  - tables / side-by-side columns are read cell by cell;
+    //  - a larger-than-usual vertical gap starts a new paragraph (blank line);
+    //  - a line that runs to the right edge was wrapped → join it with the next;
+    //  - otherwise keep the line break (poems, addresses, lists).
+    function buildText(data, height) {
+        const lines = prepareLines(data, height);
         if (!lines.length) return '';
-        const rights = lines.map((x) => x.box.x1).sort((a, b) => a - b);
-        const right = rights[Math.floor((rights.length - 1) * 0.9)];
-        const left = Math.min(...lines.map((x) => x.box.x0));
-        const width = Math.max(1, right - left);
         const lineH = median(lines.map((x) => x.box.y1 - x.box.y0)) || 1;
         const pitches = [];
         for (let i = 1; i < lines.length; i++) {
             const d = lines[i].box.y0 - lines[i - 1].box.y0;
             if (d > 0 && d < lineH * 3) pitches.push(d);
         }
-        const pitch = median(pitches) || lineH * 1.5;
+        // Use the tighter end of the spacing: chat screenshots and tables have many paragraph gaps.
+        const pitch = quantile(pitches, 0.25) || lineH * 1.5;
+        const tables = findTables(lines, pitch);
+        const inTable = new Set();
+        tables.forEach((t) => { for (let k = t.start; k < t.end; k++) inTable.add(k); });
 
-        let out = lines[0].text;
-        for (let i = 1; i < lines.length; i++) {
-            const prev = lines[i - 1], cur = lines[i];
-            const d = cur.box.y0 - prev.box.y0;
-            if (d < 0 || d > pitch * 1.4) out += '\n\n' + cur.text;
-            else if (prev.box.x1 >= right - width * 0.1) {
-                if (/[A-Za-z]-$/.test(out) && /^[a-z]/.test(cur.text)) out = out.slice(0, -1) + cur.text;  // de-hyphenate
-                else out += ' ' + cur.text;
-            } else out += '\n' + cur.text;
+        const plain = lines.filter((_, k) => !inTable.has(k));
+        const right = quantile((plain.length ? plain : lines).map((x) => x.box.x1), 0.95);
+        // A line was wrapped by the layout if the next line's first word would not have fitted after it.
+        const wrapped = (prev, cur) => {
+            const first = cur.segments[0].words[0].bbox;
+            return prev.box.x1 + (first.x1 - first.x0) + cur.h * 0.3 > right;
+        };
+
+        let out = '';
+        let prev = null;
+        for (let i = 0; i < lines.length; i++) {
+            const table = tables.find((t) => t.start === i);
+            if (table) {
+                out += (out ? '\n\n' : '') + tableText(lines.slice(table.start, table.end), table.gutters, pitch);
+                prev = null;
+                i = table.end - 1;
+                continue;
+            }
+            const cur = lines[i];
+            if (!prev) out += (out ? '\n\n' : '') + cur.text;
+            else if (cur.box.x0 > prev.box.x1 && (cur.box.y0 + cur.box.y1) / 2 > prev.box.y0 && (cur.box.y0 + cur.box.y1) / 2 < prev.box.y1) {
+                out += ' ' + cur.text;                          // same visual row, split by the OCR engine
+            } else {
+                const d = cur.box.y0 - prev.box.y0;
+                const listItem = /^([•\-–]|[০-৯0-9]{1,3}[.)])\s/.test(cur.text);
+                if (d < 0 || d > pitch * 1.4) out += '\n\n' + cur.text;
+                else if (!listItem && wrapped(prev, cur)) out = joinWrapped([out, cur.text]);
+                else out += '\n' + cur.text;
+            }
+            prev = cur;
         }
         return out;
     }
@@ -318,20 +520,22 @@
             const worker = await getWorker('both');
             const { primary, alt } = chooseScales(img);
 
-            let canvas = toCanvas(img, primary);
-            let data = await recognizeCanvas(worker, canvas);
-            let conf = meanConfidence(data);
-
-            // Evened-out lighting and a second scale; keep the most confident reading.
-            const variants = [[primary, true]];
+            // Read several versions (plain, lighting-corrected, second scale)…
+            const runs = [];
+            const variants = [[primary, false], [primary, true]];
             if (alt) variants.push([alt, false]);
             for (let i = 0; i < variants.length; i++) {
-                report('retry', i / variants.length);
-                const c2 = toCanvas(img, variants[i][0], variants[i][1]);
-                const d2 = await recognizeCanvas(worker, c2);
-                const conf2 = meanConfidence(d2);
-                if (conf2 > conf) { data = d2; conf = conf2; canvas = c2; }
+                if (i > 0) report('retry', (i - 1) / (variants.length - 1));
+                const [scale, flat] = variants[i];
+                const c = toCanvas(img, scale, flat);
+                const d = await recognizeCanvas(worker, c);
+                runs.push({ scale, canvas: c, data: d, conf: meanConfidence(d) });
             }
+            // …start from the most confident one, then take each line from whichever version read it best.
+            runs.sort((a, b) => b.conf - a.conf);
+            const base = runs[0];
+            fuseLines(base, runs.slice(1));
+            const data = base.data, canvas = base.canvas, conf = meanConfidence(data);
 
             const hasBengali = BENGALI.test(data.text || '');
             const needsRepair = hasBengali && linesOf(data).some((l) => suspiciousWords(l).length);
@@ -342,7 +546,8 @@
                 repairBengali(data, benData);
             }
             if (img.close) img.close();
-            return { text: buildText(data).trim(), confidence: conf };
+            if (window.TextOCR.debug) window.TextOCR.last = data;
+            return { text: buildText(data, canvas.height).trim(), confidence: conf };
         } finally {
             progressHandler = null;
         }
